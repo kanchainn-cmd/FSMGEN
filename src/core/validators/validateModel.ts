@@ -1,4 +1,4 @@
-import type { Condition, FsmModel } from "../schema/types";
+import type { FsmModel } from "../schema/types";
 
 export interface ValidationResult {
   valid: boolean;
@@ -31,6 +31,7 @@ export function validateModel(model: FsmModel): ValidationResult {
     model.states.map((state) => state.name),
     errors,
   );
+  validateSharedNameConflicts(model, errors);
 
   const stateNames = new Set(model.states.map((state) => state.name));
   const outputNames = new Set(model.ports.outputs.map((output) => output.name));
@@ -124,13 +125,23 @@ function validateIdentifier(label: string, value: string, errors: string[]): voi
 }
 
 function validateCondition(
-  condition: Condition,
+  condition: unknown,
   path: string,
   errors: string[],
   warnings: string[],
   declaredSignals: Set<string>,
 ): void {
+  if (!isRecord(condition)) {
+    errors.push(`${path} condition must be an object.`);
+    return;
+  }
+
   if ("expr" in condition) {
+    if (typeof condition.expr !== "string") {
+      errors.push(`${path} raw expression must be a string.`);
+      return;
+    }
+
     if (condition.expr.trim().length === 0) {
       errors.push(`${path} raw expression must not be empty.`);
     }
@@ -139,6 +150,11 @@ function validateCondition(
   }
 
   if ("signal" in condition) {
+    if (typeof condition.signal !== "string") {
+      errors.push(`${path} condition signal must be a string.`);
+      return;
+    }
+
     validateIdentifier("condition signal", condition.signal, errors);
 
     if (!declaredSignals.has(condition.signal)) {
@@ -151,6 +167,11 @@ function validateCondition(
   }
 
   if ("all" in condition) {
+    if (!Array.isArray(condition.all)) {
+      errors.push(`${path}.all condition group must be an array.`);
+      return;
+    }
+
     validateConditionGroup(
       "all",
       condition.all,
@@ -159,6 +180,16 @@ function validateCondition(
       warnings,
       declaredSignals,
     );
+    return;
+  }
+
+  if (!("any" in condition)) {
+    errors.push(`${path} has an unknown condition shape.`);
+    return;
+  }
+
+  if (!Array.isArray(condition.any)) {
+    errors.push(`${path}.any condition group must be an array.`);
     return;
   }
 
@@ -174,7 +205,7 @@ function validateCondition(
 
 function validateConditionGroup(
   groupName: "all" | "any",
-  conditions: Condition[],
+  conditions: unknown[],
   path: string,
   errors: string[],
   warnings: string[],
@@ -194,4 +225,38 @@ function validateConditionGroup(
       declaredSignals,
     );
   });
+}
+
+function validateSharedNameConflicts(model: FsmModel, errors: string[]): void {
+  if (model.clock.name === model.clock.reset) {
+    errors.push(`Clock/reset name "${model.clock.name}" must be unique.`);
+  }
+
+  const inputNames = new Set(model.ports.inputs.map((input) => input.name));
+  for (const output of model.ports.outputs) {
+    if (inputNames.has(output.name)) {
+      errors.push(
+        `Port name "${output.name}" is used by both an input and output.`,
+      );
+    }
+  }
+
+  const reservedNames = new Set([
+    model.clock.name,
+    model.clock.reset,
+    ...model.ports.inputs.map((input) => input.name),
+    ...model.ports.outputs.map((output) => output.name),
+  ]);
+
+  for (const state of model.states) {
+    if (reservedNames.has(state.name)) {
+      errors.push(
+        `State name "${state.name}" must not collide with a port, clock, or reset name.`,
+      );
+    }
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

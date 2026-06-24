@@ -210,4 +210,124 @@ describe("FSM model validator", () => {
       ]),
     );
   });
+
+  it("returns validation errors instead of throwing for unknown condition shapes", () => {
+    const model: FsmModel = {
+      ...createDefaultModel(),
+      transitions: [
+        {
+          from: "IDLE",
+          to: "IDLE",
+          when: {} as FsmModel["transitions"][number]["when"],
+          outputs: {},
+        },
+      ],
+    };
+
+    const result = validateModel(model);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual([
+      expect.stringContaining("condition shape"),
+    ]);
+  });
+
+  it("returns validation errors instead of throwing for non-array all groups", () => {
+    const model: FsmModel = {
+      ...createDefaultModel(),
+      transitions: [
+        {
+          from: "IDLE",
+          to: "IDLE",
+          when: {
+            all: "start",
+          } as unknown as FsmModel["transitions"][number]["when"],
+          outputs: {},
+        },
+      ],
+    };
+
+    const result = validateModel(model);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual([expect.stringContaining("all")]);
+  });
+
+  it("returns validation errors instead of throwing for non-array any groups", () => {
+    const model: FsmModel = {
+      ...createDefaultModel(),
+      transitions: [
+        {
+          from: "IDLE",
+          to: "IDLE",
+          when: {
+            any: "start",
+          } as unknown as FsmModel["transitions"][number]["when"],
+          outputs: {},
+        },
+      ],
+    };
+
+    const result = validateModel(model);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual([expect.stringContaining("any")]);
+  });
+
+  it("rejects clock and reset names that collide", () => {
+    const model: FsmModel = {
+      ...createDefaultModel(),
+      clock: { ...createDefaultModel().clock, reset: "clk" },
+    };
+
+    const result = validateModel(model);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual([
+      expect.stringContaining('Clock/reset name "clk"'),
+    ]);
+  });
+
+  it("rejects input and output names that collide", () => {
+    const model: FsmModel = {
+      ...createDefaultModel(),
+      ports: {
+        inputs: [{ name: "shared", width: 1 }],
+        outputs: [{ name: "shared", width: 1 }],
+      },
+      states: [{ name: "IDLE", outputs: { shared: 0 } }],
+    };
+
+    const result = validateModel(model);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual([
+      expect.stringContaining('Port name "shared"'),
+    ]);
+  });
+
+  it("rejects state names that collide with ports, clock, or reset", () => {
+    const model: FsmModel = {
+      ...createDefaultModel(),
+      states: [
+        { name: "clk", outputs: { done: 0 } },
+        { name: "start", outputs: { done: 0 } },
+        { name: "done", outputs: { done: 0 } },
+        { name: "rst_n", outputs: { done: 0 } },
+      ],
+      initial: "clk",
+    };
+
+    const result = validateModel(model);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('State name "clk"'),
+        expect.stringContaining('State name "start"'),
+        expect.stringContaining('State name "done"'),
+        expect.stringContaining('State name "rst_n"'),
+      ]),
+    );
+  });
 });
