@@ -39,15 +39,18 @@ export function DiagnosticsPanel({
             </article>
           ) : null}
 
-          {validation.errors.map((error) => (
-            <article className="diagnostic diagnostic-error" key={`error-${error}`}>
+          {validation.errors.map((error, index) => (
+            <article className="diagnostic diagnostic-error" key={`error-${index}-${error}`}>
               <strong>Validation error</strong>
               <p>{error}</p>
             </article>
           ))}
 
-          {validation.warnings.map((warning) => (
-            <article className="diagnostic diagnostic-warning" key={`warning-${warning}`}>
+          {validation.warnings.map((warning, index) => (
+            <article
+              className="diagnostic diagnostic-warning"
+              key={`warning-${index}-${warning}`}
+            >
               <strong>Warning</strong>
               <p>{warning}</p>
             </article>

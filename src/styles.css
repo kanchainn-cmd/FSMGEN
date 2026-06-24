@@ -269,9 +269,28 @@ input[type="checkbox"] {
   width: 100%;
 }
 
+.primary-action:disabled {
+  background: #8da99a;
+  border-color: #8da99a;
+  cursor: wait;
+}
+
 .primary-action:hover {
   background: #0f4c2c;
   border-color: #0f4c2c;
+}
+
+.primary-action:disabled:hover {
+  background: #8da99a;
+  border-color: #8da99a;
+}
+
+.export-error {
+  background: #fff1f1;
+  border-left: 3px solid #c93434;
+  color: #7b1d1d;
+  margin: 0 0 10px;
+  padding: 8px 10px;
 }
 
 .download-grid {
