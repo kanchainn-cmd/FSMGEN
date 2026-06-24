@@ -8,6 +8,7 @@ import { generateTestbench } from "./testbench";
 export interface GeneratedArtifact {
   filename: string;
   content: string;
+  language: "systemverilog" | "verilog" | "mermaid" | "markdown";
 }
 
 export interface GeneratedArtifacts {
@@ -23,22 +24,27 @@ export function generateAllArtifacts(model: FsmModel): GeneratedArtifacts {
     systemverilog: {
       filename: `${model.module}.sv`,
       content: generateSystemVerilog(model),
+      language: "systemverilog",
     },
     verilog2001: {
       filename: `${model.module}.v`,
       content: generateVerilog2001(model),
+      language: "verilog",
     },
     mermaid: {
       filename: `${model.module}.mmd`,
       content: generateMermaid(model),
+      language: "mermaid",
     },
     transitionTable: {
       filename: `${model.module}_transitions.md`,
       content: generateTransitionTableMarkdown(model),
+      language: "markdown",
     },
     testbench: {
       filename: `tb_${model.module}.sv`,
       content: generateTestbench(model),
+      language: "systemverilog",
     },
   };
 }

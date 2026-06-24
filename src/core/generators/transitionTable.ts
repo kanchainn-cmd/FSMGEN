@@ -77,10 +77,10 @@ function transitionTableRows(model: FsmModel): TransitionTableRow[] {
 
     return {
       from: transition.from,
-      condition: renderConditionForDisplay(transition.when),
+      condition: normalizeTableText(renderConditionForDisplay(transition.when)),
       to: transition.to,
-      mooreOutputs: renderOutputs(fromState?.outputs ?? {}),
-      mealyOutputs: renderOutputs(transition.outputs),
+      mooreOutputs: normalizeTableText(renderOutputs(fromState?.outputs ?? {})),
+      mealyOutputs: normalizeTableText(renderOutputs(transition.outputs)),
     };
   });
 }
@@ -93,7 +93,13 @@ function escapeMarkdownCell(cell: string): string {
   return cell.replace(/\|/g, "\\|");
 }
 
-function renderOutputs(outputs: StateConfig["outputs"] | TransitionConfig["outputs"]): string {
+function normalizeTableText(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function renderOutputs(
+  outputs: StateConfig["outputs"] | TransitionConfig["outputs"],
+): string {
   const entries = Object.entries(outputs);
 
   if (entries.length === 0) {

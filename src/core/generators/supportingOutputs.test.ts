@@ -101,6 +101,82 @@ describe("supporting FSM artifact generators", () => {
     );
   });
 
+  it("keeps raw multiline condition labels on one safe Mermaid transition line", () => {
+    const unsafeModel: FsmModel = {
+      ...mealyModel,
+      transitions: [
+        {
+          from: "GREEN",
+          to: "YELLOW",
+          when: {
+            expr: "timer_done | mode[0]\nBAD --> HACK : injected",
+          },
+          outputs: {},
+        },
+      ],
+    };
+
+    const mermaid = generateMermaid(unsafeModel);
+
+    expect(mermaid).toBe(
+      [
+        "stateDiagram-v2",
+        "  [*] --> GREEN",
+        "  GREEN --> YELLOW : timer_done \\| mode(0) BAD -> HACK - injected",
+        "",
+      ].join("\n"),
+    );
+    expect(
+      mermaid.split("\n").filter((line) => line.includes("-->")),
+    ).toHaveLength(2);
+  });
+
+  it("escapes Markdown table pipes and flattens multiline raw conditions", () => {
+    const unsafeModel: FsmModel = {
+      ...mealyModel,
+      transitions: [
+        {
+          from: "GREEN",
+          to: "YELLOW",
+          when: {
+            expr: "timer_done | mode[0]\nnext_line",
+          },
+          outputs: {},
+        },
+      ],
+    };
+
+    const markdown = generateTransitionTableMarkdown(unsafeModel);
+
+    expect(markdown).toContain(
+      "| GREEN | timer_done \\| mode[0] next_line | YELLOW | green=1, phase=2'b01 | - |",
+    );
+    expect(markdown.split("\n")).toHaveLength(4);
+  });
+
+  it("keeps transition-derived testbench comments single-line and comment-safe", () => {
+    const unsafeModel: FsmModel = {
+      ...mealyModel,
+      transitions: [
+        {
+          from: "GREEN",
+          to: "YELLOW",
+          when: {
+            expr: "timer_done\n$finish;\nmode == 2'b01",
+          },
+          outputs: {},
+        },
+      ],
+    };
+
+    const testbench = generateTestbench(unsafeModel);
+
+    expect(testbench).toContain(
+      "// GREEN -> YELLOW when timer_done $finish; mode == 2'b01",
+    );
+    expect(testbench).not.toContain("\n$finish;\n");
+  });
+
   it("generates a compilable SystemVerilog testbench skeleton", () => {
     const testbench = generateTestbench(mealyModel);
 
@@ -122,14 +198,39 @@ describe("supporting FSM artifact generators", () => {
     expect(testbench).toContain("endmodule");
   });
 
+  it("uses active-high reset polarity in generated testbenches", () => {
+    const activeHighModel: FsmModel = {
+      ...mealyModel,
+      clock: {
+        name: "clk_i",
+        reset: "rst",
+        reset_active: "high",
+      },
+    };
+
+    const testbench = generateTestbench(activeHighModel);
+
+    expect(testbench).toContain("logic clk_i;");
+    expect(testbench).toContain("always #5 clk_i = ~clk_i;");
+    expect(testbench).toContain("rst = 1'b1;");
+    expect(testbench).toContain("repeat (2) @(posedge clk_i);");
+    expect(testbench).toContain("rst = 1'b0;");
+    expect(testbench).toContain("@(posedge clk_i);");
+  });
+
   it("generates all HDL and companion artifacts with module-derived filenames", () => {
     const artifacts = generateAllArtifacts(mealyModel);
 
     expect(artifacts.systemverilog.filename).toBe("traffic_fsm.sv");
+    expect(artifacts.systemverilog.language).toBe("systemverilog");
     expect(artifacts.verilog2001.filename).toBe("traffic_fsm.v");
+    expect(artifacts.verilog2001.language).toBe("verilog");
     expect(artifacts.mermaid.filename).toBe("traffic_fsm.mmd");
+    expect(artifacts.mermaid.language).toBe("mermaid");
     expect(artifacts.transitionTable.filename).toBe("traffic_fsm_transitions.md");
+    expect(artifacts.transitionTable.language).toBe("markdown");
     expect(artifacts.testbench.filename).toBe("tb_traffic_fsm.sv");
+    expect(artifacts.testbench.language).toBe("systemverilog");
     expect(artifacts.systemverilog.content).toContain("module traffic_fsm (");
     expect(artifacts.verilog2001.content).toContain("module traffic_fsm (");
     expect(artifacts.mermaid.content).toContain("stateDiagram-v2");

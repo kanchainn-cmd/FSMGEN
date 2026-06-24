@@ -28,8 +28,8 @@ export function generateTestbench(model: FsmModel): string {
   lines.push("  // Transition-derived stimulus placeholders:");
   for (const transition of model.transitions) {
     lines.push(
-      `  // ${transition.from} -> ${transition.to} when ${renderConditionForDisplay(
-        transition.when,
+      `  // ${transition.from} -> ${transition.to} when ${sanitizeCommentText(
+        renderConditionForDisplay(transition.when),
       )}`,
     );
   }
@@ -84,4 +84,8 @@ function renderResetSequence(model: FsmModel): string[] {
 
 function renderPackedRange(port: PortConfig): string {
   return port.width <= 1 ? "" : `[${port.width - 1}:0] `;
+}
+
+function sanitizeCommentText(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
 }
