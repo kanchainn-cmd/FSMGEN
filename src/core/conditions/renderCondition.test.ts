@@ -29,4 +29,16 @@ describe("condition rendering", () => {
       renderConditionForDisplay({ signal: "done", op: "==", value: 1 }),
     ).toBe("done == 1");
   });
+
+  it("rejects empty all groups", () => {
+    expect(() => renderConditionForVerilog({ all: [] })).toThrow(
+      'Condition group "all" must contain at least one child condition.',
+    );
+  });
+
+  it("rejects empty any groups", () => {
+    expect(() => renderConditionForVerilog({ any: [] })).toThrow(
+      'Condition group "any" must contain at least one child condition.',
+    );
+  });
 });
