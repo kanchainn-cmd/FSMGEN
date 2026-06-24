@@ -199,6 +199,56 @@ describe("FSM model validator", () => {
     expect(result.warnings).toEqual([expect.stringContaining("unknown_signal")]);
   });
 
+  it("rejects unsupported HDL flavor values from runtime input", () => {
+    const model: FsmModel = {
+      ...createDefaultModel(),
+      flavor: "vhdl" as FsmModel["flavor"],
+    };
+
+    const result = validateModel(model);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual([expect.stringContaining("flavor")]);
+  });
+
+  it("rejects unsupported reset polarity values from runtime input", () => {
+    const model: FsmModel = {
+      ...createDefaultModel(),
+      clock: {
+        ...createDefaultModel().clock,
+        reset_active: "negative" as FsmModel["clock"]["reset_active"],
+      },
+    };
+
+    const result = validateModel(model);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual([expect.stringContaining("reset_active")]);
+  });
+
+  it("rejects unsupported structured condition operator values from runtime input", () => {
+    const model: FsmModel = {
+      ...createDefaultModel(),
+      transitions: [
+        {
+          from: "IDLE",
+          to: "IDLE",
+          when: {
+            signal: "start",
+            op: "===",
+            value: 1,
+          } as unknown as FsmModel["transitions"][number]["when"],
+          outputs: {},
+        },
+      ],
+    };
+
+    const result = validateModel(model);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual([expect.stringContaining("operator")]);
+  });
+
   it("validates raw expressions and condition groups are non-empty", () => {
     const model: FsmModel = {
       ...createDefaultModel(),

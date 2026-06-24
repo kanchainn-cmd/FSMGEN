@@ -117,8 +117,9 @@ describe("FsmForm", () => {
     );
 
     const transitionRow = screen.getByTestId("transition-row-1");
-    expect(within(transitionRow).getByLabelText("Condition expression")).toHaveValue(
-      "(start == 1)",
+    expect(within(transitionRow).getByLabelText("Condition type")).toHaveValue("all");
+    expect(within(transitionRow).getByLabelText("Condition 1 signal")).toHaveValue(
+      "start",
     );
     await user.selectOptions(within(transitionRow).getByLabelText("Condition type"), "atomic");
     await user.clear(within(transitionRow).getByLabelText("Condition signal"));
@@ -172,6 +173,60 @@ describe("FsmForm", () => {
 
     expect(changes.map((model) => model.ports.inputs[0].width)).not.toContain(0);
     expect(currentModel().ports.inputs[0].width).toBe(8);
+  });
+
+  it("edits all and any condition groups without converting them to raw expressions", async () => {
+    const user = userEvent.setup();
+    const initialModel: FsmModel = {
+      ...createDefaultModel(),
+      transitions: [
+        {
+          from: "IDLE",
+          to: "IDLE",
+          when: { expr: "start" },
+          outputs: {},
+        },
+      ],
+    };
+
+    render(<ControlledForm initialModel={initialModel} />);
+
+    const transitionRow = screen.getByTestId("transition-row-1");
+    await user.selectOptions(within(transitionRow).getByLabelText("Condition type"), "all");
+    await user.selectOptions(
+      within(transitionRow).getByLabelText("Condition 1 type"),
+      "atomic",
+    );
+    await user.clear(within(transitionRow).getByLabelText("Condition 1 signal"));
+    await user.type(within(transitionRow).getByLabelText("Condition 1 signal"), "start");
+    await user.selectOptions(within(transitionRow).getByLabelText("Condition 1 operator"), "==");
+    await user.clear(within(transitionRow).getByLabelText("Condition 1 value"));
+    await user.type(within(transitionRow).getByLabelText("Condition 1 value"), "1");
+
+    await user.click(within(transitionRow).getByRole("button", { name: "Add condition to all" }));
+    await user.selectOptions(
+      within(transitionRow).getByLabelText("Condition 2 type"),
+      "any",
+    );
+    await user.selectOptions(
+      within(transitionRow).getByLabelText("Condition 2.1 type"),
+      "atomic",
+    );
+    await user.clear(within(transitionRow).getByLabelText("Condition 2.1 signal"));
+    await user.type(within(transitionRow).getByLabelText("Condition 2.1 signal"), "start");
+    await user.selectOptions(
+      within(transitionRow).getByLabelText("Condition 2.1 operator"),
+      "!=",
+    );
+    await user.clear(within(transitionRow).getByLabelText("Condition 2.1 value"));
+    await user.type(within(transitionRow).getByLabelText("Condition 2.1 value"), "0");
+
+    expect(currentModel().transitions[0].when).toEqual({
+      all: [
+        { signal: "start", op: "==", value: "1" },
+        { any: [{ signal: "start", op: "!=", value: "0" }] },
+      ],
+    });
   });
 
   it("clears transition outputs when Mealy mode is turned off", async () => {

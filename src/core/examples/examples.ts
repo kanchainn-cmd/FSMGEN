@@ -89,4 +89,75 @@ transitions:
 initial: S0
 `,
   },
+  {
+    id: "fallback-controller",
+    name: "Controller with fallback transitions",
+    yaml: `version: 1
+module: fallback_controller
+flavor: systemverilog
+mealy: false
+clock:
+  name: clk
+  reset: rst_n
+  reset_active: low
+ports:
+  inputs:
+    - name: start
+      width: 1
+    - name: complete
+      width: 1
+    - name: ack
+      width: 1
+  outputs:
+    - name: busy
+      width: 1
+    - name: done
+      width: 1
+states:
+  - name: IDLE
+    outputs:
+      busy: 0
+      done: 0
+  - name: BUSY
+    outputs:
+      busy: 1
+      done: 0
+  - name: DONE
+    outputs:
+      busy: 0
+      done: 1
+transitions:
+  - from: IDLE
+    to: BUSY
+    when:
+      signal: start
+      op: ==
+      value: 1
+  - from: IDLE
+    to: IDLE
+    when:
+      expr: "!start"
+  - from: BUSY
+    to: DONE
+    when:
+      signal: complete
+      op: ==
+      value: 1
+  - from: BUSY
+    to: BUSY
+    when:
+      expr: "!complete"
+  - from: DONE
+    to: IDLE
+    when:
+      signal: ack
+      op: ==
+      value: 1
+  - from: DONE
+    to: DONE
+    when:
+      expr: "!ack"
+initial: IDLE
+`,
+  },
 ];

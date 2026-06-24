@@ -7,10 +7,23 @@ export interface ValidationResult {
 }
 
 const HDL_IDENTIFIER_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const HDL_FLAVORS = new Set(["systemverilog", "verilog2001"]);
+const RESET_ACTIVE_VALUES = new Set(["low", "high"]);
+const CONDITION_OPERATORS = new Set(["==", "!=", "<", "<=", ">", ">="]);
 
 export function validateModel(model: FsmModel): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
+
+  if (!HDL_FLAVORS.has(model.flavor)) {
+    errors.push(`flavor "${String(model.flavor)}" is not supported.`);
+  }
+
+  if (!RESET_ACTIVE_VALUES.has(model.clock.reset_active)) {
+    errors.push(
+      `clock.reset_active "${String(model.clock.reset_active)}" is not supported.`,
+    );
+  }
 
   validateIdentifier("module", model.module, errors);
   validateIdentifier("clock", model.clock.name, errors);
@@ -176,6 +189,12 @@ function validateCondition(
     if (!declaredSignals.has(condition.signal)) {
       warnings.push(
         `${path} references condition signal "${condition.signal}" that is not declared as an input, output, clock, or reset.`,
+      );
+    }
+
+    if (!CONDITION_OPERATORS.has(condition.op as string)) {
+      errors.push(
+        `${path} condition operator "${String(condition.op)}" is not supported.`,
       );
     }
 
