@@ -44,8 +44,8 @@ export function TransitionsEditor({
                 )
               }
             >
-              {model.states.map((state) => (
-                <option key={state.name} value={state.name}>
+              {model.states.map((state, stateIndex) => (
+                <option key={`from-${stateIndex}`} value={state.name}>
                   {state.name || "(unnamed)"}
                 </option>
               ))}
@@ -64,8 +64,8 @@ export function TransitionsEditor({
                 )
               }
             >
-              {model.states.map((state) => (
-                <option key={state.name} value={state.name}>
+              {model.states.map((state, stateIndex) => (
+                <option key={`to-${stateIndex}`} value={state.name}>
                   {state.name || "(unnamed)"}
                 </option>
               ))}
@@ -83,13 +83,17 @@ export function TransitionsEditor({
             }
           />
           {model.mealy &&
-            model.ports.outputs.map((port) => (
+            model.ports.outputs.map((port, outputIndex) => (
               <Field
-                key={`${index}-${port.name}`}
-                label={`Mealy output ${port.name} for transition ${index + 1}`}
+                key={`transition-${index}-output-${outputIndex}`}
+                label={`Mealy output ${port.name} ${
+                  outputIndex + 1
+                } for transition ${index + 1}`}
               >
                 <input
-                  aria-label={`Mealy output ${port.name} for transition ${index + 1}`}
+                  aria-label={`Mealy output ${port.name} ${
+                    outputIndex + 1
+                  } for transition ${index + 1}`}
                   value={String(transition.outputs[port.name] ?? "")}
                   onChange={(event) =>
                     onChange(

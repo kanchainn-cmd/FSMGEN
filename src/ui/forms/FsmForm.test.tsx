@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDefaultModel } from "../../core/schema/defaults";
 import type { FsmModel } from "../../core/schema/types";
 import { FsmForm } from "./FsmForm";
@@ -35,6 +35,10 @@ function currentModel(): FsmModel {
 }
 
 describe("FsmForm", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("edits module settings through controlled model changes", async () => {
     const user = userEvent.setup();
     render(<ControlledForm />);
@@ -96,11 +100,21 @@ describe("FsmForm", () => {
     const stateRows = screen.getAllByTestId("state-row");
     await user.clear(within(stateRows[2]).getByLabelText("State 3 name"));
     await user.type(within(stateRows[2]).getByLabelText("State 3 name"), "DONE");
-    await user.click(within(stateRows[2]).getByLabelText("Initial state"));
-    await user.clear(within(stateRows[2]).getByLabelText("Moore output done for state DONE"));
-    await user.type(within(stateRows[2]).getByLabelText("Moore output done for state DONE"), "1");
-    await user.clear(within(stateRows[2]).getByLabelText("Moore output error for state DONE"));
-    await user.type(within(stateRows[2]).getByLabelText("Moore output error for state DONE"), "0");
+    await user.click(within(stateRows[2]).getByLabelText("Initial state 3"));
+    await user.clear(
+      within(stateRows[2]).getByLabelText("Moore output done for state 3 output 1"),
+    );
+    await user.type(
+      within(stateRows[2]).getByLabelText("Moore output done for state 3 output 1"),
+      "1",
+    );
+    await user.clear(
+      within(stateRows[2]).getByLabelText("Moore output error for state 3 output 2"),
+    );
+    await user.type(
+      within(stateRows[2]).getByLabelText("Moore output error for state 3 output 2"),
+      "0",
+    );
 
     const transitionRow = screen.getByTestId("transition-row-1");
     expect(within(transitionRow).getByLabelText("Condition expression")).toHaveValue(
@@ -112,8 +126,13 @@ describe("FsmForm", () => {
     await user.selectOptions(within(transitionRow).getByLabelText("Condition operator"), "!=");
     await user.clear(within(transitionRow).getByLabelText("Condition value"));
     await user.type(within(transitionRow).getByLabelText("Condition value"), "0");
-    await user.clear(within(transitionRow).getByLabelText("Mealy output done for transition 1"));
-    await user.type(within(transitionRow).getByLabelText("Mealy output done for transition 1"), "0");
+    await user.clear(
+      within(transitionRow).getByLabelText("Mealy output done 1 for transition 1"),
+    );
+    await user.type(
+      within(transitionRow).getByLabelText("Mealy output done 1 for transition 1"),
+      "0",
+    );
 
     await user.click(screen.getByRole("button", { name: "Add transition" }));
 
@@ -140,5 +159,79 @@ describe("FsmForm", () => {
     expect(initialModel.transitions[0].when).toEqual({
       all: [{ signal: "start", op: "==", value: 1 }],
     });
+  });
+
+  it("does not emit zero width while clearing and replacing a port width", async () => {
+    const user = userEvent.setup();
+    const changes: FsmModel[] = [];
+
+    render(<ControlledForm onModelChange={changes.push.bind(changes)} />);
+
+    await user.clear(screen.getByLabelText("Input port 1 width"));
+    await user.type(screen.getByLabelText("Input port 1 width"), "8");
+
+    expect(changes.map((model) => model.ports.inputs[0].width)).not.toContain(0);
+    expect(currentModel().ports.inputs[0].width).toBe(8);
+  });
+
+  it("clears transition outputs when Mealy mode is turned off", async () => {
+    const user = userEvent.setup();
+    const initialModel: FsmModel = {
+      ...createDefaultModel(),
+      mealy: true,
+      transitions: [
+        {
+          from: "IDLE",
+          to: "IDLE",
+          when: { expr: "start" },
+          outputs: { done: 1 },
+        },
+      ],
+    };
+
+    render(<ControlledForm initialModel={initialModel} />);
+
+    await user.click(screen.getByLabelText("Mealy machine"));
+
+    const model = currentModel();
+    expect(model.mealy).toBe(false);
+    expect(model.transitions[0].outputs).toEqual({});
+  });
+
+  it("renders duplicate draft state and output names without React key warnings", () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const initialModel: FsmModel = {
+      ...createDefaultModel(),
+      ports: {
+        inputs: [{ name: "start", width: 1 }],
+        outputs: [
+          { name: "done", width: 1 },
+          { name: "done", width: 1 },
+        ],
+      },
+      states: [
+        { name: "IDLE", outputs: { done: 0 } },
+        { name: "IDLE", outputs: { done: 1 } },
+      ],
+      transitions: [
+        {
+          from: "IDLE",
+          to: "IDLE",
+          when: { expr: "start" },
+          outputs: {},
+        },
+      ],
+    };
+
+    render(<ControlledForm initialModel={initialModel} />);
+
+    const messages = consoleError.mock.calls
+      .flat()
+      .map((message) => String(message));
+    expect(messages).not.toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("Encountered two children with the same key"),
+      ]),
+    );
   });
 });

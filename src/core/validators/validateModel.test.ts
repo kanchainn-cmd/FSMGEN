@@ -129,6 +129,31 @@ describe("FSM model validator", () => {
     );
   });
 
+  it("rejects input and output port widths below 1 or non-integer", () => {
+    const model: FsmModel = {
+      ...createDefaultModel(),
+      ports: {
+        inputs: [
+          { name: "zero_width", width: 0 },
+          { name: "fractional_width", width: 1.5 },
+        ],
+        outputs: [{ name: "negative_width", width: -1 }],
+      },
+      states: [{ name: "IDLE", outputs: { negative_width: 0 } }],
+    };
+
+    const result = validateModel(model);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('input "zero_width" width'),
+        expect.stringContaining('input "fractional_width" width'),
+        expect.stringContaining('output "negative_width" width'),
+      ]),
+    );
+  });
+
   it("rejects Moore and Mealy output assignments to undeclared output ports", () => {
     const model: FsmModel = {
       ...createDefaultModel(),

@@ -35,7 +35,19 @@ export function ModuleSettings({
           aria-label="Mealy machine"
           type="checkbox"
           checked={model.mealy}
-          onChange={(event) => onChange({ ...model, mealy: event.target.checked })}
+          onChange={(event) => {
+            const mealy = event.target.checked;
+            onChange({
+              ...model,
+              mealy,
+              transitions: mealy
+                ? model.transitions
+                : model.transitions.map((transition) => ({
+                    ...transition,
+                    outputs: {},
+                  })),
+            });
+          }}
         />
         <span>Mealy machine</span>
       </label>

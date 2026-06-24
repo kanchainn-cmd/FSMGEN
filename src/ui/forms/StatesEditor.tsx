@@ -1,7 +1,7 @@
 import { Field } from "../common/Field";
 import type { FsmModel, StateConfig } from "../../core/schema/types";
 
-function stateLabel(state: StateConfig, index: number): string {
+function stateDisplayName(state: StateConfig, index: number): string {
   return state.name || `state ${index + 1}`;
 }
 
@@ -44,7 +44,7 @@ export function StatesEditor({
           </Field>
           <label>
             <input
-              aria-label="Initial state"
+              aria-label={`Initial state ${index + 1}`}
               checked={model.initial === state.name}
               name="initial-state"
               onChange={() => onChange({ ...model, initial: state.name })}
@@ -52,13 +52,18 @@ export function StatesEditor({
             />
             <span>Initial</span>
           </label>
-          {model.ports.outputs.map((port) => (
+          {model.ports.outputs.map((port, outputIndex) => (
             <Field
-              key={`${state.name}-${port.name}`}
-              label={`Moore output ${port.name} for state ${stateLabel(state, index)}`}
+              key={`state-${index}-output-${outputIndex}`}
+              label={`Moore output ${port.name} for state ${index + 1} output ${
+                outputIndex + 1
+              }`}
             >
               <input
-                aria-label={`Moore output ${port.name} for state ${stateLabel(
+                aria-label={`Moore output ${port.name} for state ${
+                  index + 1
+                } output ${outputIndex + 1}`}
+                title={`Moore output ${port.name} for ${stateDisplayName(
                   state,
                   index,
                 )}`}

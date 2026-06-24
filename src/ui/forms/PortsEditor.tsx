@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Field } from "../common/Field";
 import type { FsmModel, PortConfig } from "../../core/schema/types";
 
@@ -28,6 +29,15 @@ function addPort(model: FsmModel, kind: PortKind): FsmModel {
       [kind]: [...model.ports[kind], { name: "", width: 1 }],
     },
   };
+}
+
+function parsePortWidth(value: string, currentWidth: number): number {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    return Math.max(1, currentWidth);
+  }
+
+  return parsed;
 }
 
 export function PortsEditor({
@@ -75,18 +85,12 @@ function PortList({
             />
           </Field>
           <Field label={`${label} port ${index + 1} width`}>
-            <input
-              aria-label={`${label} port ${index + 1} width`}
-              min={1}
-              type="number"
-              value={port.width || ""}
-              onChange={(event) =>
-                onChange(
-                  updatePort(model, kind, index, {
-                    width: Number.parseInt(event.target.value, 10) || 0,
-                  }),
-                )
+            <PortWidthInput
+              ariaLabel={`${label} port ${index + 1} width`}
+              onChange={(width) =>
+                onChange(updatePort(model, kind, index, { width }))
               }
+              value={port.width}
             />
           </Field>
         </div>
@@ -95,5 +99,44 @@ function PortList({
         Add {label.toLowerCase()} port
       </button>
     </section>
+  );
+}
+
+function PortWidthInput({
+  ariaLabel,
+  value,
+  onChange,
+}: {
+  ariaLabel: string;
+  value: number;
+  onChange: (width: number) => void;
+}) {
+  const [draftValue, setDraftValue] = useState(String(value));
+
+  useEffect(() => {
+    setDraftValue(String(value));
+  }, [value]);
+
+  return (
+    <input
+      aria-label={ariaLabel}
+      min={1}
+      type="number"
+      value={draftValue}
+      onChange={(event) => {
+        const nextValue = event.target.value;
+        setDraftValue(nextValue);
+
+        if (nextValue === "") {
+          return;
+        }
+
+        const nextWidth = parsePortWidth(nextValue, value);
+        if (nextWidth !== value || nextValue !== String(nextWidth)) {
+          onChange(nextWidth);
+        }
+      }}
+      onBlur={() => setDraftValue(String(value))}
+    />
   );
 }

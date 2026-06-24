@@ -26,6 +26,8 @@ export function validateModel(model: FsmModel): ValidationResult {
     model.ports.outputs.map((output) => output.name),
     errors,
   );
+  validatePortWidths("input", model.ports.inputs, errors);
+  validatePortWidths("output", model.ports.outputs, errors);
   validateNamedItems(
     "state",
     model.states.map((state) => state.name),
@@ -121,6 +123,20 @@ function validateNamedItems(
 function validateIdentifier(label: string, value: string, errors: string[]): void {
   if (!HDL_IDENTIFIER_PATTERN.test(value)) {
     errors.push(`${label} "${value}" must be a legal HDL-like identifier.`);
+  }
+}
+
+function validatePortWidths(
+  kind: "input" | "output",
+  ports: Array<{ name: string; width: number }>,
+  errors: string[],
+): void {
+  for (const port of ports) {
+    if (!Number.isInteger(port.width) || port.width < 1) {
+      errors.push(
+        `${kind} "${port.name}" width must be an integer greater than or equal to 1.`,
+      );
+    }
   }
 }
 
