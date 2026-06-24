@@ -30,6 +30,7 @@ ports:
     - name: done
 states:
   - name: IDLE
+transitions: []
 initial: IDLE
 `);
 
@@ -80,6 +81,28 @@ ports:
     }
 
     expect(parsed.diagnostic.message).not.toHaveLength(0);
+  });
+
+  it("rejects YAML missing required clock configuration", () => {
+    const parsed = parseFsmYaml(`version: 1
+module: missing_clock
+flavor: systemverilog
+mealy: false
+ports:
+  inputs: []
+  outputs: []
+states:
+  - name: IDLE
+transitions: []
+initial: IDLE
+`);
+
+    expect(parsed.ok).toBe(false);
+    if (parsed.ok) {
+      return;
+    }
+
+    expect(parsed.diagnostic.message).toContain("clock");
   });
 
   it("rejects wrong port collection types", () => {

@@ -41,6 +41,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isString(value: unknown): value is string {
+  return typeof value === "string";
+}
+
 function isScalarOutputValue(value: unknown): value is string | number {
   return typeof value === "string" || typeof value === "number";
 }
@@ -87,6 +91,21 @@ function collectionDiagnostic(path: string): StructuralCheckResult {
   };
 }
 
+function scalarDiagnostic(path: string, typeName: string): StructuralCheckResult {
+  return {
+    ok: false,
+    diagnostic: { message: `${path} must be a ${typeName}.` },
+  };
+}
+
+function ensureString(value: unknown, path: string): StructuralCheckResult {
+  if (!isString(value)) {
+    return scalarDiagnostic(path, "string");
+  }
+
+  return { ok: true };
+}
+
 function ensureOutputAssignments(value: unknown, path: string): StructuralCheckResult {
   if (value === undefined) {
     return { ok: true };
@@ -124,6 +143,35 @@ function checkFsmYamlShape(value: unknown): StructuralCheckResult {
     };
   }
 
+  if (typeof value.version !== "number") {
+    return scalarDiagnostic("version", "number");
+  }
+
+  for (const path of ["module", "flavor", "initial"] as const) {
+    const result = ensureString(value[path], path);
+    if (!result.ok) {
+      return result;
+    }
+  }
+
+  if (typeof value.mealy !== "boolean") {
+    return scalarDiagnostic("mealy", "boolean");
+  }
+
+  if (!isRecord(value.clock)) {
+    return {
+      ok: false,
+      diagnostic: { message: "clock must be a mapping." },
+    };
+  }
+
+  for (const path of ["name", "reset", "reset_active"] as const) {
+    const result = ensureString(value.clock[path], `clock.${path}`);
+    if (!result.ok) {
+      return result;
+    }
+  }
+
   if (!isRecord(value.ports)) {
     return {
       ok: false,
@@ -131,11 +179,11 @@ function checkFsmYamlShape(value: unknown): StructuralCheckResult {
     };
   }
 
-  if (value.ports.inputs !== undefined && !Array.isArray(value.ports.inputs)) {
+  if (!Array.isArray(value.ports.inputs)) {
     return collectionDiagnostic("ports.inputs");
   }
 
-  if (value.ports.outputs !== undefined && !Array.isArray(value.ports.outputs)) {
+  if (!Array.isArray(value.ports.outputs)) {
     return collectionDiagnostic("ports.outputs");
   }
 
@@ -162,26 +210,24 @@ function checkFsmYamlShape(value: unknown): StructuralCheckResult {
   }
 
   const transitions = value.transitions;
-  if (transitions !== undefined) {
-    if (!Array.isArray(transitions)) {
-      return collectionDiagnostic("transitions");
+  if (!Array.isArray(transitions)) {
+    return collectionDiagnostic("transitions");
+  }
+
+  for (const [index, transition] of transitions.entries()) {
+    if (!isRecord(transition)) {
+      return {
+        ok: false,
+        diagnostic: { message: `transitions[${index}] must be a mapping.` },
+      };
     }
 
-    for (const [index, transition] of transitions.entries()) {
-      if (!isRecord(transition)) {
-        return {
-          ok: false,
-          diagnostic: { message: `transitions[${index}] must be a mapping.` },
-        };
-      }
-
-      const assignmentsCheck = ensureOutputAssignments(
-        transition.outputs,
-        `transitions[${index}].outputs`,
-      );
-      if (!assignmentsCheck.ok) {
-        return assignmentsCheck;
-      }
+    const assignmentsCheck = ensureOutputAssignments(
+      transition.outputs,
+      `transitions[${index}].outputs`,
+    );
+    if (!assignmentsCheck.ok) {
+      return assignmentsCheck;
     }
   }
 
