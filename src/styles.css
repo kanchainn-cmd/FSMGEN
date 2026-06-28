@@ -127,6 +127,7 @@ textarea {
   align-items: center;
   border-bottom: 1px solid #e3e8ef;
   display: flex;
+  gap: 12px;
   justify-content: space-between;
   padding: 9px 12px;
 }
@@ -248,6 +249,28 @@ input[type="checkbox"] {
   color: #ffffff;
 }
 
+.preview-mode-toggle {
+  background: #eef2f6;
+  border: 1px solid #d8dee7;
+  border-radius: 7px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  padding: 2px;
+}
+
+.preview-mode-toggle button {
+  border: 0;
+  border-radius: 5px;
+  font-size: 0.78rem;
+  min-height: 26px;
+  padding: 3px 8px;
+}
+
+.preview-mode-toggle button[aria-pressed="true"] {
+  background: #172026;
+  color: #ffffff;
+}
+
 .artifact-preview {
   background: #101820;
   color: #e7eef7;
@@ -259,6 +282,84 @@ input[type="checkbox"] {
   overflow: auto;
   padding: 12px;
   white-space: pre;
+}
+
+.rendered-artifact {
+  background: #fbfcfe;
+  max-height: 470px;
+  overflow: auto;
+  padding: 12px;
+}
+
+.rendered-diagram {
+  display: grid;
+  place-items: center;
+}
+
+.render-empty {
+  color: #4c5867;
+  padding: 12px;
+}
+
+.rendered-markdown-table {
+  border-collapse: collapse;
+  min-width: 100%;
+}
+
+.rendered-markdown-table th,
+.rendered-markdown-table td {
+  border: 1px solid #d8dee7;
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.rendered-markdown-table th {
+  background: #eef2f6;
+  color: #172026;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.state-diagram {
+  height: auto;
+  max-width: 100%;
+  min-width: 520px;
+}
+
+.state-node rect {
+  fill: #ffffff;
+  stroke: #2a3643;
+  stroke-width: 1.5;
+}
+
+.state-node text {
+  fill: #172026;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.state-edge path {
+  fill: none;
+  stroke: #526173;
+  stroke-width: 1.5;
+}
+
+.state-edge circle,
+.state-edge marker path {
+  fill: #172026;
+}
+
+.state-edge text {
+  fill: #34404d;
+  font-size: 12px;
+  paint-order: stroke;
+  stroke: #fbfcfe;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4px;
+  text-anchor: middle;
 }
 
 .primary-action {
