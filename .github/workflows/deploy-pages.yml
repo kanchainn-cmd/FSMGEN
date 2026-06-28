@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - codex/render-artifact-previews
   workflow_dispatch:
 
 permissions:
